@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#2563eb">
+<meta name="theme-color" content="#0f172a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Flashcards V4.3">
-<title>Flashcards V4.3</title>
-<link rel="manifest" href="./manifest.webmanifest?v=4.3">
+<meta name="apple-mobile-web-app-title" content="Flashcards V4.3.1">
+<title>Flashcards V4.3.1</title>
+<link rel="manifest" href="./manifest.webmanifest?v=4.3.1">
 <link rel="apple-touch-icon" href="./icon-192.png">
-<link rel="stylesheet" href="./styles.css?v=4.3">
+<link rel="stylesheet" href="./styles.css?v=4.3.1">
 <style>
 .primary-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
 .primary-actions button{min-height:76px;font-size:17px;font-weight:800;border-radius:16px}
@@ -21,8 +21,7 @@
 <body>
 <div id="studyView">
   <div class="app">
-    <header class="header"><div><h1>Flashcards V4.3</h1><div class="sub">medical terms</div></div></header>
-
+    <header class="header"><div><h1>Flashcards V4.3.1</h1><div class="sub">medical terms</div></div></header>
     <section class="toolbar-panel">
       <div class="toolbar">
         <div class="tool"><button onclick="showGroups()">Settings</button></div>
@@ -34,7 +33,6 @@
       <select id="statusFilter" class="hidden"><option value="all">All statuses</option><option value="review">Review only</option><option value="known">Known only</option><option value="unmarked">Unmarked only</option><option value="missed">Missed most often</option></select>
       <div class="study-summary"><div id="summaryLine1"></div><div id="summaryLine2"></div></div>
     </section>
-
     <section class="panel">
       <div class="progress-head"><span id="count"></span><span id="pct"></span></div><div class="progress"><div id="progress"></div></div>
       <div class="study-card" id="card" onclick="flipCard()"><div class="inner"><div class="face" id="front"></div><div class="face back" id="back"></div></div></div>
@@ -44,18 +42,17 @@
     </section>
   </div>
 </div>
-
 <div id="groupsView" class="hidden">
   <div class="app">
-    <header class="header"><div><div class="sub">medical terms · V4.3</div><h1>Settings</h1></div><button onclick="showStudy()">← Back</button></header>
+    <header class="header"><div><div class="sub">medical terms · V4.3.1</div><h1>Settings</h1></div><button onclick="showStudy()">← Back</button></header>
     <section class="panel"><h2>Appearance</h2><div class="setting-row"><div><div class="setting-title">Dark mode</div><div class="sub">Use a darker color scheme throughout the app.</div></div><label class="switch"><input id="darkModeToggle" type="checkbox" onchange="setDarkMode(this.checked)"><span class="slider"></span></label></div></section>
     <section class="panel"><h2>Manage groups</h2><p class="sub intro">Rename groups, change which terms belong to them, or delete them. All is the only fixed group.</p><div id="groupsList"></div></section>
     <section class="panel"><h2>Create group</h2><div class="row"><input id="newGroup" placeholder="e.g. Cardiovascular"><button class="primary" onclick="createGroup()">Create</button></div><div id="groupEditor"></div></section>
     <section class="panel"><h2>Progress Backup</h2><p class="sub intro">Save this before clearing Safari website data or reinstalling the Home Screen app.</p><div class="backup-actions"><button class="primary" onclick="exportProgress()">Save Backup</button><button onclick="document.getElementById('progressImport').click()">Restore Backup</button></div><input id="progressImport" type="file" accept="application/json,.json" hidden onchange="importProgress(event)"></section>
   </div>
 </div>
-<script src="./app-v4.js?v=4.3"></script>
-<script src="./v43.js?v=4.3"></script>
+<script src="./app-v4.js?v=4.3.1"></script>
+<script src="./v43.js?v=4.3.1"></script>
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(r=>r.update()).catch(console.error)}</script>
 </body>
 </html>
