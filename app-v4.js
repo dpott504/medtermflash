@@ -4,14 +4,14 @@ function esc(s){return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').
 function loadState(){custom=JSON.parse(localStorage.getItem(K.custom)||'{}');selected=JSON.parse(localStorage.getItem(K.selected)||'["All cards"]');known=new Set(JSON.parse(localStorage.getItem(K.known)||'[]'));review=new Set(JSON.parse(localStorage.getItem(K.review)||'[]'));missCounts=JSON.parse(localStorage.getItem(K.miss)||'{}')}
 function saveState(){localStorage.setItem(K.custom,JSON.stringify(custom));localStorage.setItem(K.selected,JSON.stringify(selected));localStorage.setItem(K.known,JSON.stringify([...known]));localStorage.setItem(K.review,JSON.stringify([...review]));localStorage.setItem(K.miss,JSON.stringify(missCounts))}
 async function loadCards(){
-  const html=await fetch('./index.html?db=v4',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('database');return r.text()});
-  const marker='const CARDS=';
-  const start=html.indexOf(marker);
-  if(start<0)throw new Error('database marker missing');
-  const arrayStart=start+marker.length;
-  const end=html.indexOf(';',arrayStart);
-  if(end<0)throw new Error('database end missing');
-  const raw=html.slice(arrayStart,end).trim();
+  const html=await fetch('./index.html?db=v42',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('database');return r.text()});
+  const startMarker='const CARDS=';
+  const endMarker='const DEFAULT_GROUPS';
+  const start=html.indexOf(startMarker);
+  const end=html.indexOf(endMarker,start+startMarker.length);
+  if(start<0||end<0)throw new Error('database markers missing');
+  let raw=html.slice(start+startMarker.length,end).trim();
+  if(raw.endsWith(';'))raw=raw.slice(0,-1).trim();
   const parsed=JSON.parse(raw);
   if(!Array.isArray(parsed)||!parsed.length)throw new Error('database empty');
   CARDS=parsed.filter(c=>c&&c.term&&c.meaning);
@@ -32,7 +32,7 @@ function deleteGroup(g){delete custom[g];selected=selected.filter(x=>x!==g);if(!
 function createGroup(){const input=document.getElementById('newGroup');const name=input.value.trim();if(!name||allGroups()[name])return;custom[name]=[];selected=selected.filter(x=>x!=='All cards');selected.push(name);input.value='';saveState();renderGroups();renderEditor(name);buildDeck()}
 function renderEditor(name){editing=name;const root=document.getElementById('groupEditor');root.innerHTML='<h2 style="margin-top:18px">Edit “'+esc(name)+'”</h2><input id="groupSearch" placeholder="Search cards to add..." oninput="renderEditorCards()"><div class="checklist" id="editorCards"></div>';renderEditorCards();root.scrollIntoView({behavior:'smooth',block:'start'})}
 function renderEditorCards(){if(!editing)return;const q=document.getElementById('groupSearch').value.toLowerCase().trim();const set=new Set(custom[editing]||[]);const root=document.getElementById('editorCards');root.innerHTML='';CARDS.forEach((c,i)=>{if(q&&!((c.term+' '+c.meaning).toLowerCase().includes(q)))return;const row=document.createElement('label');row.className='check';row.innerHTML='<input type="checkbox" '+(set.has(i)?'checked':'')+'><div class="group-name">'+esc(c.term)+'<span class="group-meta">'+esc(c.meaning)+'</span></div>';row.querySelector('input').onchange=e=>{e.target.checked?set.add(i):set.delete(i);custom[editing]=[...set];saveState();renderGroups();buildDeck()};root.appendChild(row)})}
-async function exportProgress(){const backup={app:'Med Term Cards',version:4,exportedAt:new Date().toISOString(),customGroups:custom,selectedGroups:selected,known:[...known],review:[...review],missCounts};const blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'});const name='med-term-progress-'+new Date().toISOString().slice(0,10)+'.json';const file=new File([blob],name,{type:'application/json'});if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({title:'Med Term Cards Backup',files:[file]});return}catch(e){if(e.name==='AbortError')return}}const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+async function exportProgress(){const backup={app:'Med Term Cards',version:'4.2',exportedAt:new Date().toISOString(),customGroups:custom,selectedGroups:selected,known:[...known],review:[...review],missCounts};const blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'});const name='med-term-progress-'+new Date().toISOString().slice(0,10)+'.json';const file=new File([blob],name,{type:'application/json'});if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({title:'Med Term Cards Backup',files:[file]});return}catch(e){if(e.name==='AbortError')return}}const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 async function importProgress(event){const file=event.target.files?.[0];if(!file)return;try{const data=JSON.parse(await file.text());if(data.app!=='Med Term Cards')throw 0;custom=data.customGroups||{};selected=data.selectedGroups||['All cards'];known=new Set(data.known||[]);review=new Set(data.review||[]);missCounts=data.missCounts||{};saveState();alert('Progress restored successfully.');renderGroups();buildDeck()}catch{alert('That file is not a valid Med Term Cards backup.')}finally{event.target.value=''}}
 document.addEventListener('keydown',e=>{if(e.target.matches('input,select'))return;if(e.key===' '){e.preventDefault();flipCard()}else if(e.key==='ArrowRight')nextCard();else if(e.key==='ArrowLeft')prevCard();else if(e.key.toLowerCase()==='k')markCard(true);else if(e.key.toLowerCase()==='r')markCard(false)});
 (async()=>{loadState();try{await loadCards();buildDeck();renderGroups()}catch(e){document.getElementById('front').innerHTML='<div class="meaning">Could not load flashcards. Refresh once while online.</div>';console.error(e)}})();
