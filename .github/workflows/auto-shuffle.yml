@@ -1,0 +1,55 @@
+name: Apply automatic deck shuffle
+
+on:
+  push:
+    paths:
+      - '.github/workflows/auto-shuffle.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  update-app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update flashcard behavior
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text()
+
+          # Remove the manual Shuffle button while keeping Groups.
+          s = s.replace('''    <div style="display:flex;gap:8px">\n      <button class="primary" onclick="shuffleDeck()">🔀 Shuffle</button>\n      <button onclick="openGroups()">Groups</button>\n    </div>''', '''    <div style="display:flex;gap:8px">\n      <button onclick="openGroups()">Groups</button>\n    </div>''')
+
+          # Every newly generated/refreshed deck is shuffled automatically.
+          old = '''  if(status==="missed"){
+    deck.sort((a,b)=>(missCounts[CARDS[b].term]||0)-(missCounts[CARDS[a].term]||0));
+  }
+
+  pos=0;flipped=false;render();renderQuick();'''
+          new = '''  if(status==="missed"){
+    // Keep the useful most-missed ordering for this special study mode.
+    deck.sort((a,b)=>(missCounts[CARDS[b].term]||0)-(missCounts[CARDS[a].term]||0));
+  } else {
+    // All normal decks start in a fresh random order whenever generated.
+    for(let i=deck.length-1;i>0;i--){
+      const j=Math.floor(Math.random()*(i+1));
+      [deck[i],deck[j]]=[deck[j],deck[i]];
+    }
+  }
+
+  pos=0;flipped=false;render();renderQuick();'''
+          if old not in s:
+              raise SystemExit('Could not locate deck generation block; no changes made.')
+          s = s.replace(old, new, 1)
+          p.write_text(s)
+      - name: Commit update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m "Shuffle decks automatically"
+          git push
