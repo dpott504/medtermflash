@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#2563eb">
+<title>Med Term Cards</title>
+<style>
+:root{--bg:#f4f7fb;--card:#fff;--ink:#152033;--muted:#667085;--accent:#2563eb;--border:#dce3ee;--red:#b42318}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif}
+body{padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+.app{max-width:760px;margin:auto;padding:18px 16px 32px}
+.header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+h1{font-size:30px;margin:0 0 3px}.sub{color:var(--muted);font-size:14px}
+button{border:0;border-radius:12px;padding:12px 15px;font-weight:700;font-size:15px;background:#e8eef8;color:#183153;cursor:pointer}
+.primary{background:var(--accent);color:white}.danger{background:#feecec;color:var(--red)}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:15px;margin-top:15px;box-shadow:0 7px 25px #102a4308}
+.tabs{display:flex;gap:7px;overflow:auto}.tab{white-space:nowrap;padding:9px 12px}.tab.active{background:#dbeafe;color:#1d4ed8}
+label{display:block;font-size:12px;font-weight:800;color:var(--muted);margin:0 0 6px}
+input,select{width:100%;padding:12px;border:1px solid var(--border);border-radius:11px;background:white;font-size:16px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.study-card{min-height:390px;margin:16px 0;perspective:1000px;cursor:pointer}.inner{min-height:390px;position:relative;transform-style:preserve-3d;transition:.45s}.flipped .inner{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;border:1px solid var(--border);border-radius:24px;background:white;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:28px;box-shadow:0 15px 45px #102a4310}
+.back{transform:rotateY(180deg)}
+.tag{font-size:12px;text-transform:uppercase;letter-spacing:.13em;color:var(--muted);font-weight:850}
+.term{font-size:clamp(40px,10vw,72px);font-weight:900;margin-top:25px;word-break:break-word}
+.meaning{font-size:clamp(23px,6vw,36px);font-weight:800;line-height:1.18;margin:18px 0}
+.hint{color:var(--muted);margin-top:15px}
+.nav{display:flex;gap:8px}.nav button{flex:1}
+.stats{display:flex;justify-content:center;gap:22px;color:var(--muted);font-size:14px;margin:10px}.stats b{color:var(--ink)}
+.progress{height:7px;background:#e8edf5;border-radius:99px;overflow:hidden;margin-top:8px}.progress div{height:100%;background:var(--accent);width:0}
+.small{font-size:12px;color:var(--muted);text-align:center;margin-top:10px}
+.modal{position:fixed;inset:0;background:#0f172a66;display:flex;align-items:flex-end;justify-content:center;padding:12px;z-index:10}
+.sheet{background:white;border-radius:22px 22px 0 0;width:min(760px,100%);max-height:90vh;overflow:auto;padding:20px}.hidden{display:none!important}
+.check{display:flex;gap:10px;align-items:center;padding:10px;border-bottom:1px solid #eef2f7}.check:last-child{border-bottom:0}
+.check input{width:20px;height:20px}.check span{font-weight:650}
+.checklist{max-height:330px;overflow:auto;border:1px solid var(--border);border-radius:12px;padding:5px}
+.row{display:flex;gap:8px}.row input{flex:1}
+@media(max-width:600px){.grid{grid-template-columns:1fr}.study-card,.inner{min-height:360px}}
+@media(min-width:650px){.modal{align-items:center}.sheet{border-radius:22px}}
+</style>
+
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Med Term Cards">
+<link rel="apple-touch-icon" href="./icon-192.png">
+
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div><h1>Med Term Cards</h1><div class="sub">Medical terminology flashcards</div></div>
+    <div style="display:flex;gap:8px">
+      <button class="primary" onclick="shuffleDeck()">🔀 Shuffle</button>
+      <button onclick="openGroups()">Groups</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="tabs" id="quickGroups"></div>
+  </div>
+
+  <div class="panel">
+    <div class="grid">
+      <div><label>Search</label><input id="search" placeholder="heart, blood, -itis..." oninput="refresh()"></div>
+      <div><label>Card direction</label><select id="direction" onchange="render()"><option value="term">Element → Meaning</option><option value="meaning">Meaning → Element</option></select></div>
+    </div>
+    <div style="margin-top:10px">
+      <label>Learning status</label>
+      <select id="statusFilter" onchange="refresh()">
+        <option value="all">All statuses</option>
+        <option value="review">Review only</option>
+        <option value="known">Known only</option>
+        <option value="unmarked">Unmarked only</option>
+        <option value="missed">Missed most often</option>
+      </select>
+    </div>
+    <div style="margin-top:12px"><label>Selected groups</label><div id="selectedSummary" class="sub"></div></div>
+  </div>
+
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;color:var(--muted);font-size:13px"><span id="count"></span><span id="pct"></span></div>
+    <div class="progress"><div id="progress"></div></div>
+
+    <div class="study-card" id="card" onclick="flip()">
+      <div class="inner">
+        <div class="face" id="front"></div>
+        <div class="face back" id="back"></div>
+      </div>
+    </div>
+
+    <div class="nav"><button onclick="prev()">← Previous</button><button class="primary" onclick="flip()">Flip</button><button onclick="next()">Next →</button></div>
+    <div class="stats"><span>Known <b id="known">0</b></span><span>Review <b id="review">0</b></span><span>Misses <b id="misses">0</b></span></div>
+    <div class="nav"><button onclick="mark(true)">✓ Knew it</button><button onclick="mark(false)">↻ Review</button></div>
+    <div class="small">Progress and custom groups are saved on this device.</div>
+  </div>
+</div>
+
+<div id="modal" class="modal hidden" onclick="if(event.target===this) closeGroups()">
+  <div class="sheet">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h2 style="margin:0">Study Groups</h2><button onclick="closeGroups()">Done</button>
+    </div>
+    <p class="sub" style="margin:6px 0 16px">Select multiple groups to combine them into one study session.</p>
+    <div id="groups"></div>
+
+    <hr style="border:0;border-top:1px solid var(--border);margin:18px 0">
+    <h3>Create custom group</h3>
+    <div class="row"><input id="newGroup" placeholder="e.g. Cardiovascular"><button class="primary" onclick="createGroup()">Create</button></div>
+    <div id="editor" style="margin-top:16px"></div>
+  </div>
+</div>
+
+<script>
+const CARDS=[{"term": "a-", "meaning": "without; not"}, {"term": "ab-", "meaning": "from; away from"}, {"term": "abdomin/o", "meaning": "abdomen"}, {"term": "abort/o", "meaning": "to miscarry"}, {"term": "-ac", "meaning": "pertaining to"}, {"term": "acid/o", "meaning": "acid"}, {"term": "acous/o", "meaning": "hearing"}, {"term": "acr/o", "meaning": "extremity"}, {"term": "acromi/o", "meaning": "acromion (projection of the scapula)"}, {"term": "-acusis", "meaning": "hearing"}, {"term": "ad-", "meaning": "toward"}, {"term": "-ad", "meaning": "toward"}, {"term": "aden/o", "meaning": "gland"}, {"term": "adenoid/o", "meaning": "adenoids"}, {"term": "adip/o", "meaning": "fat"}, {"term": "adren/o", "meaning": "adrenal glands"}, {"term": "adrenal/o", "meaning": "adrenal glands"}, {"term": "aer/o", "meaning": "air"}, {"term": "af-", "meaning": "toward"}, {"term": "agglutin/o", "meaning": "clumping, gluing"}, {"term": "agora-", "meaning": "marketplace"}, {"term": "-al", "meaning": "pertaining to"}, {"term": "albin/o", "meaning": "white"}, {"term": "albumin/o", "meaning": "albumin (protein)"}, {"term": "-algesia", "meaning": "pain"}, {"term": "-algia", "meaning": "pain"}, {"term": "allo-", "meaning": "other, differing from the normal"}, {"term": "alveol/o", "meaning": "alveolus; air sac"}, {"term": "ambly/o", "meaning": "dull, dim"}, {"term": "amni/o", "meaning": "amnion (amniotic sac)"}, {"term": "an-", "meaning": "without; not"}, {"term": "an/o", "meaning": "anus"}, {"term": "ana-", "meaning": "against; up; back"}, {"term": "andr/o", "meaning": "male"}, {"term": "aneurysm/o", "meaning": "widened blood vessel"}, {"term": "angi/o", "meaning": "vessel (usually blood or lymph)"}, {"term": "aniso-", "meaning": "unequal; dissimilar"}, {"term": "ankyl/o", "meaning": "stiffness; bent, crooked"}, {"term": "ante-", "meaning": "before, in front of"}, {"term": "anter/o", "meaning": "anterior, front"}, {"term": "anthrac/o", "meaning": "coal, coal dust"}, {"term": "anti-", "meaning": "against"}, {"term": "aort/o", "meaning": "aorta"}, {"term": "append/o", "meaning": "appendix"}, {"term": "appendic/o", "meaning": "appendix"}, {"term": "aque/o", "meaning": "water"}, {"term": "-ar", "meaning": "pertaining to"}, {"term": "-arche", "meaning": "beginning"}, {"term": "arteri/o", "meaning": "artery"}, {"term": "arteriol/o", "meaning": "arteriole"}, {"term": "arthr/o", "meaning": "joint"}, {"term": "-ary", "meaning": "pertaining to"}, {"term": "asbest/o", "meaning": "asbestos"}, {"term": "-asthenia", "meaning": "weakness, debility"}, {"term": "astr/o", "meaning": "star"}, {"term": "-ate", "meaning": "having the form of; possessing"}, {"term": "atel/o", "meaning": "incomplete; imperfect"}, {"term": "ather/o", "meaning": "fatty plaque"}, {"term": "-ation", "meaning": "process (of)"}, {"term": "atri/o", "meaning": "atrium"}, {"term": "audi/o", "meaning": "hearing"}, {"term": "audit/o", "meaning": "hearing"}, {"term": "aur/o", "meaning": "ear"}, {"term": "auricul/o", "meaning": "ear"}, {"term": "auto-", "meaning": "self, own"}, {"term": "ax/o", "meaning": "axis; axon"}, {"term": "azot/o", "meaning": "nitrogenous compounds"}, {"term": "bacteri/o", "meaning": "bacteria (singular, bacterium)"}, {"term": "balan/o", "meaning": "glans penis"}, {"term": "bas/o", "meaning": "base (alkaline, opposite of acid)"}, {"term": "bi-", "meaning": "two"}, {"term": "bi/o", "meaning": "life"}, {"term": "bil/i", "meaning": "bile, gall"}, {"term": "-blast", "meaning": "embryonic cell"}, {"term": "blast/o", "meaning": "embryonic cell"}, {"term": "blephar/o", "meaning": "eyelid"}, {"term": "brachi/o", "meaning": "arm"}, {"term": "brachy-", "meaning": "short"}, {"term": "brady-", "meaning": "slow"}, {"term": "bronch/o", "meaning": "bronchus (plural, bronchi)"}, {"term": "bronchi/o", "meaning": "bronchus (plural, bronchi)"}, {"term": "bronchiol/o", "meaning": "bronchiole"}, {"term": "bucc/o", "meaning": "cheek"}, {"term": "calc/o", "meaning": "calcium"}, {"term": "calcane/o", "meaning": "calcaneum (heel bone)"}, {"term": "-capnia", "meaning": "carbon dioxide (CO2)"}, {"term": "carcin/o", "meaning": "cancer"}, {"term": "cardi/o", "meaning": "heart"}, {"term": "-cardia", "meaning": "heart condition"}, {"term": "carp/o", "meaning": "carpus (wrist bones)"}, {"term": "cata-", "meaning": "down"}, {"term": "caud/o", "meaning": "tail"}, {"term": "cauter/o", "meaning": "heat, burn"}, {"term": "cec/o", "meaning": "cecum"}, {"term": "-cele", "meaning": "hernia; swelling"}, {"term": "-centesis", "meaning": "surgical puncture"}, {"term": "cephal/o", "meaning": "head"}, {"term": "-ceps", "meaning": "head"}, {"term": "-ception", "meaning": "conceiving"}, {"term": "cerebell/o", "meaning": "cerebellum"}, {"term": "cerebr/o", "meaning": "cerebrum"}, {"term": "cervic/o", "meaning": "neck; cervix uteri (neck of the uterus)"}, {"term": "chalic/o", "meaning": "limestone"}, {"term": "cheil/o", "meaning": "lip"}, {"term": "chem/o", "meaning": "chemical; drug"}, {"term": "chlor/o", "meaning": "green"}, {"term": "chol/e", "meaning": "bile, gall"}, {"term": "cholangi/o", "meaning": "bile vessel"}, {"term": "cholecyst/o", "meaning": "gallbladder"}, {"term": "choledoch/o", "meaning": "bile duct"}, {"term": "chondr/o", "meaning": "cartilage"}, {"term": "chori/o", "meaning": "chorion"}, {"term": "choroid/o", "meaning": "choroid"}, {"term": "chrom/o", "meaning": "color"}, {"term": "chromat/o", "meaning": "color"}, {"term": "-cide", "meaning": "killing"}, {"term": "cine-", "meaning": "movement"}, {"term": "circum-", "meaning": "around"}, {"term": "cirrh/o", "meaning": "yellow"}, {"term": "-cision", "meaning": "a cutting"}, {"term": "-clasia", "meaning": "to break; surgical fracture"}, {"term": "-clasis", "meaning": "to break; surgical fracture"}, {"term": "-clast", "meaning": "to break; surgical fracture"}, {"term": "clavicul/o", "meaning": "clavicle (collar bone)"}, {"term": "-cleisis", "meaning": "closure"}, {"term": "clon/o", "meaning": "clonus (turmoil)"}, {"term": "-clysis", "meaning": "irrigation, washing"}, {"term": "coccyg/o", "meaning": "coccyx (tailbone)"}, {"term": "cochle/o", "meaning": "cochlea"}, {"term": "col/o", "meaning": "colon"}, {"term": "colon/o", "meaning": "colon"}, {"term": "colp/o", "meaning": "vagina"}, {"term": "condyl/o", "meaning": "condyle"}, {"term": "coni/o", "meaning": "dust"}, {"term": "conjunctiv/o", "meaning": "conjunctiva"}, {"term": "-continence", "meaning": "to hold back"}, {"term": "contra-", "meaning": "against; opposite"}, {"term": "cor/o", "meaning": "pupil"}, {"term": "core/o", "meaning": "pupil"}, {"term": "corne/o", "meaning": "cornea"}, {"term": "coron/o", "meaning": "heart"}, {"term": "corp/o", "meaning": "body"}, {"term": "corpor/o", "meaning": "body"}, {"term": "cortic/o", "meaning": "cortex"}, {"term": "cost/o", "meaning": "ribs"}, {"term": "crani/o", "meaning": "cranium (skull)"}, {"term": "crin/o", "meaning": "secrete"}, {"term": "-crine", "meaning": "secrete"}, {"term": "cruci/o", "meaning": "cross"}, {"term": "cry/o", "meaning": "cold"}, {"term": "crypt/o", "meaning": "hidden"}, {"term": "culd/o", "meaning": "cul-de-sac"}, {"term": "-cusia", "meaning": "hearing"}, {"term": "-cusis", "meaning": "hearing"}, {"term": "cutane/o", "meaning": "skin"}, {"term": "cyan/o", "meaning": "blue"}, {"term": "cycl/o", "meaning": "ciliary body of the eye; circular; cycle"}, {"term": "-cyesis", "meaning": "pregnancy"}, {"term": "cyst/o", "meaning": "bladder"}, {"term": "cyt/o", "meaning": "cell"}, {"term": "-cyte", "meaning": "cell"}, {"term": "dacry/o", "meaning": "tear; lacrimal apparatus (duct, sac, or gland)"}, {"term": "dacryocyst/o", "meaning": "lacrimal sac"}, {"term": "dactyl/o", "meaning": "fingers; toes"}, {"term": "de-", "meaning": "cessation"}, {"term": "dendr/o", "meaning": "tree"}, {"term": "dent/o", "meaning": "teeth"}, {"term": "derm/o", "meaning": "skin"}, {"term": "-derma", "meaning": "skin"}, {"term": "dermat/o", "meaning": "skin"}, {"term": "-desis", "meaning": "binding, fixation (of a bone or joint)"}, {"term": "di-", "meaning": "double"}, {"term": "dia-", "meaning": "through; across"}, {"term": "dipl-", "meaning": "double"}, {"term": "dipl/o", "meaning": "double"}, {"term": "dips/o", "meaning": "thirst"}, {"term": "-dipsia", "meaning": "thirst"}, {"term": "dist/o", "meaning": "far, farthest"}, {"term": "dors/o", "meaning": "back (of the body)"}, {"term": "duct/o", "meaning": "to lead; carry"}, {"term": "-duction", "meaning": "act of leading, bringing, conducting"}, {"term": "duoden/o", "meaning": "duodenum (first part of the small intestine)"}, {"term": "dur/o", "meaning": "dura mater; hard"}, {"term": "-dynia", "meaning": "pain"}, {"term": "dys-", "meaning": "bad; painful; difficult"}, {"term": "-eal", "meaning": "pertaining to"}, {"term": "ec-", "meaning": "out; out from"}, {"term": "echo-", "meaning": "a repeated sound"}, {"term": "-ectasis", "meaning": "dilation, expansion"}, {"term": "ecto-", "meaning": "outside; outward"}, {"term": "-ectomy", "meaning": "excision, removal"}, {"term": "-edema", "meaning": "swelling"}, {"term": "ef-", "meaning": "away from"}, {"term": "electr/o", "meaning": "electricity"}, {"term": "-ema", "meaning": "state of; condition"}, {"term": "embol/o", "meaning": "embolus (plug)"}, {"term": "-emesis", "meaning": "vomiting"}, {"term": "-emia", "meaning": "blood condition"}, {"term": "emphys/o", "meaning": "to inflate"}, {"term": "en-", "meaning": "in, within"}, {"term": "encephal/o", "meaning": "brain"}, {"term": "end-", "meaning": "in, within"}, {"term": "endo-", "meaning": "in, within"}, {"term": "enter/o", "meaning": "intestine (usually small intestine)"}, {"term": "eosin/o", "meaning": "dawn (rose-colored)"}, {"term": "epi-", "meaning": "above; upon"}, {"term": "epididym/o", "meaning": "epididymis"}, {"term": "epiglott/o", "meaning": "epiglottis"}, {"term": "episi/o", "meaning": "vulva"}, {"term": "erythem/o", "meaning": "red"}, {"term": "erythemat/o", "meaning": "red"}, {"term": "erythr/o", "meaning": "red"}, {"term": "eschar/o", "meaning": "scab"}, {"term": "-esis", "meaning": "condition"}, {"term": "eso-", "meaning": "inward"}, {"term": "esophag/o", "meaning": "esophagus"}, {"term": "esthes/o", "meaning": "feeling"}, {"term": "-esthesia", "meaning": "feeling"}, {"term": "eti/o", "meaning": "cause"}, {"term": "eu-", "meaning": "good; normal"}, {"term": "ex-", "meaning": "out; out from"}, {"term": "exo-", "meaning": "outside; outward"}, {"term": "extra-", "meaning": "outside"}, {"term": "faci/o", "meaning": "face"}, {"term": "fasci/o", "meaning": "band, fascia (fibrous membrane supporting and separating muscles)"}, {"term": "femor/o", "meaning": "femur (thigh bone)"}, {"term": "-ferent", "meaning": "to carry"}, {"term": "fibr/o", "meaning": "fiber, fibrous tissue"}, {"term": "fibul/o", "meaning": "fibula (smaller bone of the lower leg)"}, {"term": "fluor/o", "meaning": "luminous, fluorescent"}, {"term": "galact/o", "meaning": "milk"}, {"term": "gangli/o", "meaning": "ganglion (knot or knotlike mass)"}, {"term": "gastr/o", "meaning": "stomach"}, {"term": "-gen", "meaning": "forming, producing; origin"}, {"term": "gen/o", "meaning": "forming, producing; origin"}, {"term": "-genesis", "meaning": "forming, producing; origin"}, {"term": "genit/o", "meaning": "genitalia"}, {"term": "gest/o", "meaning": "pregnancy"}, {"term": "gingiv/o", "meaning": "gum(s)"}, {"term": "glauc/o", "meaning": "gray"}, {"term": "gli/o", "meaning": "glue; neuroglial tissue"}, {"term": "-glia", "meaning": "glue; neuroglial tissue"}, {"term": "-globin", "meaning": "protein"}, {"term": "glomerul/o", "meaning": "glomerulus"}, {"term": "gloss/o", "meaning": "tongue"}, {"term": "glott/o", "meaning": "glottis"}, {"term": "gluc/o", "meaning": "sugar, sweetness"}, {"term": "glucos/o", "meaning": "sugar, sweetness"}, {"term": "glyc/o", "meaning": "sugar, sweetness"}, {"term": "glycos/o", "meaning": "sugar, sweetness"}, {"term": "gnos/o", "meaning": "knowing"}, {"term": "-gnosis", "meaning": "knowing"}, {"term": "gon/o", "meaning": "seed (ovum or spermatozoon)"}, {"term": "gonad/o", "meaning": "gonads, sex glands"}, {"term": "-grade", "meaning": "to go"}, {"term": "-graft", "meaning": "transplantation"}, {"term": "-gram", "meaning": "record, writing"}, {"term": "granul/o", "meaning": "granule"}, {"term": "-graph", "meaning": "instrument for recording"}, {"term": "-graphy", "meaning": "process of recording"}, {"term": "-gravida", "meaning": "pregnant woman"}, {"term": "gyn/o", "meaning": "woman, female"}, {"term": "gynec/o", "meaning": "woman, female"}, {"term": "hallucin/o", "meaning": "hallucination"}, {"term": "hedon/o", "meaning": "pleasure"}, {"term": "hem/o", "meaning": "blood"}, {"term": "hemangi/o", "meaning": "blood vessel"}, {"term": "hemat/o", "meaning": "blood"}, {"term": "hemi-", "meaning": "one half"}, {"term": "hepat/o", "meaning": "liver"}, {"term": "hetero-", "meaning": "different"}, {"term": "hidr/o", "meaning": "sweat"}, {"term": "hist/o", "meaning": "tissue"}, {"term": "histi/o", "meaning": "tissue"}, {"term": "home/o", "meaning": "same, alike"}, {"term": "homeo-", "meaning": "same, alike"}, {"term": "homo-", "meaning": "same"}, {"term": "humer/o", "meaning": "humerus (upper arm bone)"}, {"term": "hydr/o", "meaning": "water"}, {"term": "hyp-", "meaning": "under, below; deficient"}, {"term": "hyp/o", "meaning": "under, below; deficient"}, {"term": "hyper-", "meaning": "excessive; above normal"}, {"term": "hypn/o", "meaning": "sleep"}, {"term": "hypo-", "meaning": "under, below; deficient"}, {"term": "hyster/o", "meaning": "uterus (womb)"}, {"term": "-ia", "meaning": "condition"}, {"term": "-iac", "meaning": "pertaining to"}, {"term": "-iasis", "meaning": "abnormal condition (produced by something specified)"}, {"term": "iatr/o", "meaning": "physician; medicine; treatment"}, {"term": "-iatry", "meaning": "medicine; treatment"}, {"term": "-ic", "meaning": "pertaining to"}, {"term": "-ical", "meaning": "pertaining to"}, {"term": "-ice", "meaning": "noun ending"}, {"term": "ichthy/o", "meaning": "dry; scaly"}, {"term": "-ician", "meaning": "specialist"}, {"term": "-icle", "meaning": "small, minute"}, {"term": "-icterus", "meaning": "jaundice"}, {"term": "idi/o", "meaning": "unknown; peculiar"}, {"term": "-ile", "meaning": "pertaining to"}, {"term": "ile/o", "meaning": "ileum (third part of the small intestine)"}, {"term": "ili/o", "meaning": "ilium (lateral, flaring portion of the hip bone)"}, {"term": "im-", "meaning": "not"}, {"term": "immun/o", "meaning": "immune, immunity, safe"}, {"term": "in-", "meaning": "in; not"}, {"term": "-ine", "meaning": "pertaining to"}, {"term": "infer/o", "meaning": "lower, below"}, {"term": "infra-", "meaning": "below, under"}, {"term": "inguin/o", "meaning": "groin"}, {"term": "insulin/o", "meaning": "insulin"}, {"term": "inter-", "meaning": "between"}, {"term": "intestin/o", "meaning": "intestine"}, {"term": "intra-", "meaning": "in, within"}, {"term": "-ion", "meaning": "the act of"}, {"term": "-ior", "meaning": "pertaining to"}, {"term": "irid/o", "meaning": "iris"}, {"term": "-is", "meaning": "noun ending"}, {"term": "isch/o", "meaning": "to hold back; block"}, {"term": "ischi/o", "meaning": "ischium (lower portion of the hip bone)"}, {"term": "-ism", "meaning": "condition"}, {"term": "iso-", "meaning": "same; equal"}, {"term": "-ist", "meaning": "specialist"}, {"term": "-isy", "meaning": "state of; condition"}, {"term": "-itic", "meaning": "pertaining to"}, {"term": "-itis", "meaning": "inflammation"}, {"term": "-ive", "meaning": "pertaining to"}, {"term": "-ization", "meaning": "process (of)"}, {"term": "jaund/o", "meaning": "yellow"}, {"term": "jejun/o", "meaning": "jejunum (second part of the small intestine)"}, {"term": "kal/i", "meaning": "potassium (an electrolyte)"}, {"term": "kary/o", "meaning": "nucleus"}, {"term": "kel/o", "meaning": "crab"}, {"term": "kerat/o", "meaning": "horny tissue; hard; cornea"}, {"term": "ket/o", "meaning": "ketone bodies (acids and acetones)"}, {"term": "keton/o", "meaning": "ketone bodies (acids and acetones)"}, {"term": "kinesi/o", "meaning": "movement"}, {"term": "-kinesia", "meaning": "movement"}, {"term": "kinet/o", "meaning": "movement"}, {"term": "kyph/o", "meaning": "humpback"}, {"term": "labi/o", "meaning": "lip"}, {"term": "labyrinth/o", "meaning": "labyrinth (inner ear)"}, {"term": "lacrim/o", "meaning": "tear; lacrimal apparatus (duct, sac, or gland)"}, {"term": "lact/o", "meaning": "milk"}, {"term": "-lalia", "meaning": "speech, babble"}, {"term": "lamin/o", "meaning": "lamina (part of vertebral arch)"}, {"term": "lapar/o", "meaning": "abdomen"}, {"term": "laryng/o", "meaning": "larynx (voice box)"}, {"term": "later/o", "meaning": "side; to one side"}, {"term": "lei/o", "meaning": "smooth"}, {"term": "leiomy/o", "meaning": "smooth muscle (visceral)"}, {"term": "-lepsy", "meaning": "seizure"}, {"term": "lept/o", "meaning": "thin, slender"}, {"term": "leuk/o", "meaning": "white"}, {"term": "lingu/o", "meaning": "tongue"}, {"term": "lip/o", "meaning": "fat"}, {"term": "lipid/o", "meaning": "fat"}, {"term": "-listhesis", "meaning": "slipping"}, {"term": "-lith", "meaning": "stone, calculus"}, {"term": "lith/o", "meaning": "stone, calculus"}, {"term": "lob/o", "meaning": "lobe"}, {"term": "log/o", "meaning": "study of"}, {"term": "-logist", "meaning": "specialist in the study of"}, {"term": "-logy", "meaning": "study of"}, {"term": "lord/o", "meaning": "curve, swayback"}, {"term": "-lucent", "meaning": "to shine; clear"}, {"term": "lumb/o", "meaning": "loins (lower back)"}, {"term": "lymph/o", "meaning": "lymph"}, {"term": "lymphaden/o", "meaning": "lymph gland (node)"}, {"term": "lymphangi/o", "meaning": "lymph vessel"}, {"term": "-lysis", "meaning": "separation; destruction; loosening"}, {"term": "macro-", "meaning": "large"}, {"term": "mal-", "meaning": "bad"}, {"term": "-malacia", "meaning": "softening"}, {"term": "mamm/o", "meaning": "breast"}, {"term": "-mania", "meaning": "state of mental disorder, frenzy"}, {"term": "mast/o", "meaning": "breast"}, {"term": "mastoid/o", "meaning": "mastoid process"}, {"term": "maxill/o", "meaning": "maxilla (upper jaw bone)"}, {"term": "meat/o", "meaning": "opening, meatus"}, {"term": "medi-", "meaning": "middle"}, {"term": "medi/o", "meaning": "middle"}, {"term": "mediastin/o", "meaning": "mediastinum"}, {"term": "medull/o", "meaning": "medulla"}, {"term": "mega-", "meaning": "enlargement"}, {"term": "megal/o", "meaning": "enlargement"}, {"term": "-megaly", "meaning": "enlargement"}, {"term": "melan/o", "meaning": "black"}, {"term": "men/o", "meaning": "menses, menstruation"}, {"term": "mening/o", "meaning": "meninges (membranes covering the brain and spinal cord)"}, {"term": "meningi/o", "meaning": "meninges (membranes covering the brain and spinal cord)"}, {"term": "ment/o", "meaning": "mind"}, {"term": "meso-", "meaning": "middle"}, {"term": "meta-", "meaning": "change; beyond"}, {"term": "metacarp/o", "meaning": "metacarpus (hand bones)"}, {"term": "metatars/o", "meaning": "metatarsus (foot bones)"}, {"term": "-meter", "meaning": "instrument for measuring"}, {"term": "metr/o", "meaning": "uterus (womb); measure"}, {"term": "metri/o", "meaning": "uterus (womb)"}, {"term": "-metry", "meaning": "act of measuring"}, {"term": "mi/o", "meaning": "smaller; less"}, {"term": "micr/o", "meaning": "small"}, {"term": "micro-", "meaning": "small"}, {"term": "mono-", "meaning": "one"}, {"term": "morph/o", "meaning": "form, shape; structure"}, {"term": "muc/o", "meaning": "mucus"}, {"term": "multi-", "meaning": "many, much"}, {"term": "muscul/o", "meaning": "muscle"}, {"term": "mut/a", "meaning": "genetic change"}, {"term": "my/o", "meaning": "muscle"}, {"term": "myc/o", "meaning": "fungus (plural, fungi)"}, {"term": "mydr/o", "meaning": "widen, enlarge"}, {"term": "myel/o", "meaning": "bone marrow; spinal cord"}, {"term": "myos/o", "meaning": "muscle"}, {"term": "myring/o", "meaning": "tympanic membrane (eardrum)"}, {"term": "myx/o", "meaning": "mucus"}, {"term": "narc/o", "meaning": "stupor; numbness; sleep"}, {"term": "nas/o", "meaning": "nose"}, {"term": "nat/o", "meaning": "birth"}, {"term": "natr/o", "meaning": "sodium (an electrolyte)"}, {"term": "necr/o", "meaning": "death, necrosis"}, {"term": "neo-", "meaning": "new"}, {"term": "nephr/o", "meaning": "kidney"}, {"term": "neur/o", "meaning": "nerve"}, {"term": "neutr/o", "meaning": "neutral; neither"}, {"term": "nid/o", "meaning": "nest"}, {"term": "noct/o", "meaning": "night"}, {"term": "nucle/o", "meaning": "nucleus"}, {"term": "nulli-", "meaning": "none"}, {"term": "nyctal/o", "meaning": "night"}, {"term": "obstetr/o", "meaning": "midwife"}, {"term": "ocul/o", "meaning": "eye"}, {"term": "odont/o", "meaning": "teeth"}, {"term": "-oid", "meaning": "resembling"}, {"term": "-ole", "meaning": "small, minute"}, {"term": "olig/o", "meaning": "scanty"}, {"term": "-oma", "meaning": "tumor"}, {"term": "omphal/o", "meaning": "navel (umbilicus)"}, {"term": "onc/o", "meaning": "tumor"}, {"term": "onych/o", "meaning": "nail"}, {"term": "oophor/o", "meaning": "ovary"}, {"term": "-opaque", "meaning": "obscure"}, {"term": "ophthalm/o", "meaning": "eye"}, {"term": "-opia", "meaning": "vision"}, {"term": "-opsia", "meaning": "vision"}, {"term": "-opsy", "meaning": "view of"}, {"term": "opt/o", "meaning": "eye, vision"}, {"term": "optic/o", "meaning": "eye, vision"}, {"term": "or/o", "meaning": "mouth"}, {"term": "orch/o", "meaning": "testis (plural, testes)"}, {"term": "orchi/o", "meaning": "testis (plural, testes)"}, {"term": "orchid/o", "meaning": "testis (plural, testes)"}, {"term": "-orexia", "meaning": "appetite"}, {"term": "orth/o", "meaning": "straight"}, {"term": "-ory", "meaning": "pertaining to"}, {"term": "-ose", "meaning": "pertaining to; sugar"}, {"term": "-osis", "meaning": "abnormal condition; increase (used primarily with blood cells)"}, {"term": "-osmia", "meaning": "smell"}, {"term": "oste/o", "meaning": "bone"}, {"term": "ot/o", "meaning": "ear"}, {"term": "-ous", "meaning": "pertaining to"}, {"term": "ovari/o", "meaning": "ovary"}, {"term": "ox/i", "meaning": "oxygen"}, {"term": "ox/o", "meaning": "oxygen"}, {"term": "-oxia", "meaning": "oxygen"}, {"term": "palat/o", "meaning": "palate (roof of mouth)"}, {"term": "pan-", "meaning": "all"}, {"term": "pancreat/o", "meaning": "pancreas"}, {"term": "para-", "meaning": "near, beside; beyond"}, {"term": "-para", "meaning": "to bear (offspring)"}, {"term": "parathyroid/o", "meaning": "parathyroid glands"}, {"term": "-paresis", "meaning": "partial paralysis"}, {"term": "patell/o", "meaning": "patella (kneecap)"}, {"term": "path/o", "meaning": "disease"}, {"term": "-pathy", "meaning": "disease"}, {"term": "pector/o", "meaning": "chest"}, {"term": "ped/i", "meaning": "foot; child"}, {"term": "ped/o", "meaning": "foot; child"}, {"term": "pedicul/o", "meaning": "lice"}, {"term": "pelv/i", "meaning": "pelvis"}, {"term": "pelv/o", "meaning": "pelvis"}, {"term": "pen/o", "meaning": "penis"}, {"term": "-penia", "meaning": "decrease; deficiency"}, {"term": "-pepsia", "meaning": "digestion"}, {"term": "peri-", "meaning": "around"}, {"term": "perine/o", "meaning": "perineum (area between the scrotum [or vulva in the female] and anus)"}, {"term": "peritone/o", "meaning": "peritoneum"}, {"term": "-pexy", "meaning": "fixation (of an organ)"}, {"term": "phac/o", "meaning": "lens"}, {"term": "phag/o", "meaning": "swallowing, eating"}, {"term": "-phage", "meaning": "swallowing, eating"}, {"term": "-phagia", "meaning": "swallowing, eating"}, {"term": "phalang/o", "meaning": "phalanges (bones of the fingers and toes)"}, {"term": "pharmaceutic/o", "meaning": "drug, medicine"}, {"term": "pharyng/o", "meaning": "pharynx (throat)"}, {"term": "-phasia", "meaning": "speech"}, {"term": "-phil", "meaning": "attraction for"}, {"term": "phil/o", "meaning": "attraction for"}, {"term": "-philia", "meaning": "attraction for"}, {"term": "phleb/o", "meaning": "vein"}, {"term": "-phobia", "meaning": "fear"}, {"term": "-phonia", "meaning": "voice"}, {"term": "-phoresis", "meaning": "carrying; transmission"}, {"term": "-phoria", "meaning": "feeling (mental state)"}, {"term": "phot/o", "meaning": "light"}, {"term": "phren/o", "meaning": "diaphragm; mind"}, {"term": "-phylaxis", "meaning": "protection"}, {"term": "-physis", "meaning": "growth"}, {"term": "pil/o", "meaning": "hair"}, {"term": "pituitar/o", "meaning": "pituitary gland"}, {"term": "-plakia", "meaning": "plaque"}, {"term": "plas/o", "meaning": "formation; growth"}, {"term": "-plasia", "meaning": "formation; growth"}, {"term": "-plasm", "meaning": "formation; growth"}, {"term": "-plasty", "meaning": "surgical repair"}, {"term": "-plegia", "meaning": "paralysis"}, {"term": "pleur/o", "meaning": "pleura"}, {"term": "-plexy", "meaning": "stroke"}, {"term": "-pnea", "meaning": "breathing"}, {"term": "pneum/o", "meaning": "air; lung"}, {"term": "pneumon/o", "meaning": "air; lung"}, {"term": "pod/o", "meaning": "foot"}, {"term": "-poiesis", "meaning": "formation; production"}, {"term": "poikil/o", "meaning": "varied; irregular"}, {"term": "poli/o", "meaning": "gray; gray matter (of the brain or spinal cord)"}, {"term": "poly-", "meaning": "many, much"}, {"term": "polyp/o", "meaning": "small growth"}, {"term": "-porosis", "meaning": "porous"}, {"term": "post-", "meaning": "after; behind"}, {"term": "poster/o", "meaning": "back (of the body), behind, posterior"}, {"term": "-potence", "meaning": "power"}, {"term": "-prandial", "meaning": "meal"}, {"term": "pre-", "meaning": "before, in front of"}, {"term": "presby/o", "meaning": "old age"}, {"term": "primi-", "meaning": "first"}, {"term": "pro-", "meaning": "before, in front of"}, {"term": "proct/o", "meaning": "anus, rectum"}, {"term": "prostat/o", "meaning": "prostate gland"}, {"term": "proxim/o", "meaning": "near, nearest"}, {"term": "pseudo-", "meaning": "false"}, {"term": "psych/o", "meaning": "mind"}, {"term": "-ptosis", "meaning": "prolapse, downward displacement"}, {"term": "ptyal/o", "meaning": "saliva"}, {"term": "-ptysis", "meaning": "spitting"}, {"term": "pub/o", "meaning": "pelvis bone (anterior part of the pelvic bone)"}, {"term": "pulmon/o", "meaning": "lung"}, {"term": "pupill/o", "meaning": "pupil"}, {"term": "py/o", "meaning": "pus"}, {"term": "pyel/o", "meaning": "renal pelvis"}, {"term": "pylor/o", "meaning": "pylorus"}, {"term": "pyr/o", "meaning": "fire"}, {"term": "quadri-", "meaning": "four"}, {"term": "rachi/o", "meaning": "spine"}, {"term": "radi/o", "meaning": "radiation, x-ray; radius (lower arm bone on the thumb side)"}, {"term": "radicul/o", "meaning": "nerve root"}, {"term": "rect/o", "meaning": "rectum"}, {"term": "ren/o", "meaning": "kidney"}, {"term": "reticul/o", "meaning": "net, mesh"}, {"term": "retin/o", "meaning": "retina"}, {"term": "retro-", "meaning": "backward; behind"}, {"term": "rhabd/o", "meaning": "rod-shaped (striated)"}, {"term": "rhabdomy/o", "meaning": "rod-shaped (striated) muscle"}, {"term": "rhin/o", "meaning": "nose"}, {"term": "rhytid/o", "meaning": "wrinkle"}, {"term": "roentgen/o", "meaning": "x-ray"}, {"term": "-rrhage", "meaning": "bursting forth (of)"}, {"term": "-rrhagia", "meaning": "bursting forth (of)"}, {"term": "-rrhaphy", "meaning": "suture"}, {"term": "-rrhea", "meaning": "discharge, flow"}, {"term": "-rrhexis", "meaning": "rupture"}, {"term": "-rrhythm/o", "meaning": "rhythm"}, {"term": "rube/o", "meaning": "red"}, {"term": "sacr/o", "meaning": "sacrum"}, {"term": "salping/o", "meaning": "tube (usually fallopian or eustachian [auditory] tubes)"}, {"term": "-salpinx", "meaning": "tube (usually fallopian or eustachian [auditory] tubes)"}, {"term": "sarc/o", "meaning": "flesh (connective tissue)"}, {"term": "-sarcoma", "meaning": "malignant tumor of connective tissue"}, {"term": "scapul/o", "meaning": "scapula (shoulder blade)"}, {"term": "-schisis", "meaning": "a splitting"}, {"term": "schiz/o", "meaning": "split"}, {"term": "scler/o", "meaning": "hardening; sclera (white of the eye)"}, {"term": "scoli/o", "meaning": "crooked, bent"}, {"term": "-scope", "meaning": "instrument for examining"}, {"term": "-scopy", "meaning": "visual examination"}, {"term": "scot/o", "meaning": "darkness"}, {"term": "seb/o", "meaning": "sebum, sebaceous"}, {"term": "semi-", "meaning": "one half"}, {"term": "semin/i", "meaning": "semen; seed"}, {"term": "semin/o", "meaning": "semen; seed"}, {"term": "sept/o", "meaning": "septum"}, {"term": "septic/o", "meaning": "infection"}, {"term": "sequestr/o", "meaning": "separation"}, {"term": "ser/o", "meaning": "serum"}, {"term": "sial/o", "meaning": "saliva, salivary gland"}, {"term": "sider/o", "meaning": "iron"}, {"term": "sigmoid/o", "meaning": "sigmoid colon"}, {"term": "sin/o", "meaning": "sinus, cavity"}, {"term": "sinus/o", "meaning": "sinus, cavity"}, {"term": "-sis", "meaning": "state of; condition"}, {"term": "somat/o", "meaning": "body"}, {"term": "somn/o", "meaning": "sleep"}, {"term": "son/o", "meaning": "sound"}, {"term": "-spadias", "meaning": "slit, fissure"}, {"term": "-spasm", "meaning": "involuntary contraction, twitching"}, {"term": "sperm/i", "meaning": "spermatozoa, sperm cells"}, {"term": "sperm/o", "meaning": "spermatozoa, sperm cells"}, {"term": "spermat/o", "meaning": "spermatozoa, sperm cells"}, {"term": "sphygm/o", "meaning": "pulse"}, {"term": "-sphyxia", "meaning": "pulse"}, {"term": "spin/o", "meaning": "spine"}, {"term": "spir/o", "meaning": "breathe"}, {"term": "splen/o", "meaning": "spleen"}, {"term": "spondyl/o", "meaning": "vertebra (backbone)"}, {"term": "squam/o", "meaning": "scale"}, {"term": "staped/o", "meaning": "stapes"}, {"term": "-stasis", "meaning": "standing still"}, {"term": "steat/o", "meaning": "fat"}, {"term": "sten/o", "meaning": "narrowing, stricture"}, {"term": "-stenosis", "meaning": "narrowing, stricture"}, {"term": "stern/o", "meaning": "sternum (breastbone)"}, {"term": "steth/o", "meaning": "chest"}, {"term": "sthen/o", "meaning": "strength"}, {"term": "stigmat/o", "meaning": "point, mark"}, {"term": "stomat/o", "meaning": "mouth"}, {"term": "-stomy", "meaning": "forming an opening (mouth)"}, {"term": "sub-", "meaning": "under, below"}, {"term": "sudor/o", "meaning": "sweat"}, {"term": "super-", "meaning": "upper, above"}, {"term": "super/o", "meaning": "upper, above"}, {"term": "supra-", "meaning": "above; excessive; superior"}, {"term": "sym-", "meaning": "union, together, joined"}, {"term": "syn-", "meaning": "union, together, joined"}, {"term": "synapt/o", "meaning": "synapsis, point of contact"}, {"term": "synov/o", "meaning": "synovial membrane, synovial fluid"}, {"term": "tachy-", "meaning": "rapid"}, {"term": "tax/o", "meaning": "order; coordination"}, {"term": "-taxia", "meaning": "order; coordination"}, {"term": "ten/o", "meaning": "tendon"}, {"term": "tend/o", "meaning": "tendon"}, {"term": "tendin/o", "meaning": "tendon"}, {"term": "-tension", "meaning": "to stretch"}, {"term": "test/o", "meaning": "testis (plural, testes)"}, {"term": "thalam/o", "meaning": "thalamus"}, {"term": "thalass/o", "meaning": "sea"}, {"term": "thec/o", "meaning": "sheath (usually referring to the meninges)"}, {"term": "thel/o, theli/o", "meaning": "nipple"}, {"term": "therapeut/o", "meaning": "treatment"}, {"term": "-therapy", "meaning": "treatment"}, {"term": "therm/o", "meaning": "heat"}, {"term": "thorac/o", "meaning": "chest"}, {"term": "-thorax", "meaning": "chest"}, {"term": "thromb/o", "meaning": "blood clot"}, {"term": "thym/o", "meaning": "thymus gland"}, {"term": "-thymia", "meaning": "mind; emotion"}, {"term": "thyr/o", "meaning": "thyroid gland"}, {"term": "thyroid/o", "meaning": "thyroid gland"}, {"term": "tibi/o", "meaning": "tibia (larger bone of the lower leg)"}, {"term": "-tic", "meaning": "pertaining to"}, {"term": "-tocia", "meaning": "childbirth, labor"}, {"term": "tom/o", "meaning": "to cut, slice"}, {"term": "-tome", "meaning": "instrument to cut"}, {"term": "-tomy", "meaning": "incision"}, {"term": "ton/o", "meaning": "tension"}, {"term": "tonsill/o", "meaning": "tonsils"}, {"term": "tox/o", "meaning": "poison"}, {"term": "-toxic", "meaning": "pertaining to poison"}, {"term": "toxic/o", "meaning": "poison"}, {"term": "trabecul/o", "meaning": "trabecula (supporting bundles of fibers)"}, {"term": "trache/o", "meaning": "trachea (windpipe)"}, {"term": "trans-", "meaning": "across; through"}, {"term": "tri-", "meaning": "three"}, {"term": "trich/o", "meaning": "hair"}, {"term": "trigon/o", "meaning": "trigone (triangular region at the base of the bladder)"}, {"term": "-tripsy", "meaning": "crushing"}, {"term": "-trophy", "meaning": "development; nourishment"}, {"term": "-tropia", "meaning": "turning"}, {"term": "-tropin", "meaning": "stimulate"}, {"term": "tubercul/o", "meaning": "a little swelling"}, {"term": "tympan/o", "meaning": "tympanic membrane (eardrum)"}, {"term": "-ula", "meaning": "small, minute"}, {"term": "-ule", "meaning": "small, minute"}, {"term": "uln/o", "meaning": "ulna (lower arm bone on the opposite side of the thumb)"}, {"term": "ultra-", "meaning": "excess; beyond"}, {"term": "-um", "meaning": "structure; thing"}, {"term": "umbilic/o", "meaning": "umbilicus, navel"}, {"term": "ungu/o", "meaning": "nail"}, {"term": "uni-", "meaning": "one"}, {"term": "ur/o", "meaning": "urine, urinary tract"}, {"term": "ureter/o", "meaning": "ureter"}, {"term": "urethr/o", "meaning": "urethra"}, {"term": "-uria", "meaning": "urine"}, {"term": "urin/o", "meaning": "urine, urinary tract"}, {"term": "-us", "meaning": "condition; structure"}, {"term": "uter/o", "meaning": "uterus (womb)"}, {"term": "uvul/o", "meaning": "uvula"}, {"term": "vagin/o", "meaning": "vagina"}, {"term": "valv/o", "meaning": "valve"}, {"term": "varic/o", "meaning": "dilated vein"}, {"term": "vas/o", "meaning": "vessel; vas deferens; duct"}, {"term": "vascul/o", "meaning": "vessel (usually blood or lymph)"}, {"term": "ven/o", "meaning": "vein"}, {"term": "ventr/o", "meaning": "belly, belly side"}, {"term": "ventricul/o", "meaning": "ventricle (of the heart or brain)"}, {"term": "-version", "meaning": "turning"}, {"term": "vertebr/o", "meaning": "vertebra (backbone)"}, {"term": "vesic/o", "meaning": "bladder"}, {"term": "vesicul/o", "meaning": "seminal vesicle"}, {"term": "vest/o", "meaning": "clothes"}, {"term": "viscer/o", "meaning": "internal organs"}, {"term": "vitr/o", "meaning": "vitreous body (of the eye)"}, {"term": "vitre/o", "meaning": "glassy"}, {"term": "vol/o", "meaning": "volume"}, {"term": "vulv/o", "meaning": "vulva"}, {"term": "xanth/o", "meaning": "yellow"}, {"term": "xen/o", "meaning": "foreign, strange"}, {"term": "xer/o", "meaning": "dry"}, {"term": "xiph/o", "meaning": "sword"}, {"term": "-y", "meaning": "condition; process"}];
+
+const DEFAULT_GROUPS={
+  "All cards":CARDS.map((_,i)=>i),
+  "Likely prefixes":CARDS.map((c,i)=>c.term.endsWith("-")?i:-1).filter(i=>i>=0),
+  "Likely suffixes":CARDS.map((c,i)=>c.term.startsWith("-")?i:-1).filter(i=>i>=0),
+  "Roots / combining forms":CARDS.map((c,i)=>(!c.term.startsWith("-")&&!c.term.endsWith("-"))?i:-1).filter(i=>i>=0)
+};
+
+let custom=JSON.parse(localStorage.getItem("medCustomGroups")||"{}");
+let selected=JSON.parse(localStorage.getItem("medSelectedGroups")||'["All cards"]');
+let known=new Set(JSON.parse(localStorage.getItem("medKnown")||"[]"));
+let review=new Set(JSON.parse(localStorage.getItem("medReview")||"[]"));
+let missCounts=JSON.parse(localStorage.getItem("medMissCounts")||"{}");
+let deck=[],pos=0,flipped=false,editing=null;
+
+function save(){
+  localStorage.setItem("medCustomGroups",JSON.stringify(custom));
+  localStorage.setItem("medSelectedGroups",JSON.stringify(selected));
+  localStorage.setItem("medKnown",JSON.stringify([...known]));
+  localStorage.setItem("medReview",JSON.stringify([...review]));
+  localStorage.setItem("medMissCounts",JSON.stringify(missCounts));
+}
+function allGroups(){return {...DEFAULT_GROUPS,...custom}}
+function esc(s){return s.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")}
+
+function refresh(){
+  const q=document.getElementById("search").value.toLowerCase().trim();
+  const status=document.getElementById("statusFilter")?.value||"all";
+  const groups=allGroups();
+  const ids=new Set();
+
+  // Selected groups are OR'ed together; duplicates are removed.
+  selected.forEach(g=>(groups[g]||[]).forEach(i=>ids.add(i)));
+
+  deck=[...ids].filter(i=>{
+    const term=CARDS[i].term;
+    const statusOK=
+      status==="all" ||
+      (status==="review" && review.has(term)) ||
+      (status==="known" && known.has(term)) ||
+      (status==="unmarked" && !known.has(term) && !review.has(term)) ||
+      (status==="missed" && (missCounts[term]||0)>0);
+    const searchOK=!q||(CARDS[i].term+" "+CARDS[i].meaning).toLowerCase().includes(q);
+    return statusOK && searchOK;
+  });
+
+  if(status==="missed"){
+    deck.sort((a,b)=>(missCounts[CARDS[b].term]||0)-(missCounts[CARDS[a].term]||0));
+  }
+
+  pos=0;flipped=false;render();renderQuick();
+}
+
+function renderQuick(){
+  const root=document.getElementById("quickGroups");root.innerHTML="";
+  ["All cards","Likely prefixes","Likely suffixes","Roots / combining forms",...Object.keys(custom)].forEach(g=>{
+    const b=document.createElement("button");
+    b.className="tab"+(selected.includes(g)?" active":"");
+    b.textContent=g;b.onclick=()=>toggleGroup(g);root.appendChild(b);
+  });
+}
+
+function toggleGroup(g){
+  if(g==="All cards"){
+    selected=["All cards"];
+  }else{
+    selected=selected.filter(x=>x!=="All cards");
+    if(selected.includes(g)) selected=selected.filter(x=>x!==g);
+    else selected.push(g);
+    if(!selected.length) selected=["All cards"];
+  }
+  save();refresh();renderGroups();
+}
+
+function render(){
+  const el=document.getElementById("card");
+  if(!deck.length){
+    document.getElementById("front").innerHTML='<div class="tag">No cards</div><div class="meaning">Choose a group or change your search.</div>';
+    document.getElementById("back").innerHTML="";
+    document.getElementById("count").textContent="0 cards";
+    document.getElementById("pct").textContent="";
+    document.getElementById("progress").style.width="0%";
+    document.getElementById("selectedSummary").textContent=selected.join(" + ")+" · 0 cards";
+    return;
+  }
+  if(pos>=deck.length)pos=0;if(pos<0)pos=deck.length-1;
+  const c=CARDS[deck[pos]],dir=document.getElementById("direction").value;
+  document.getElementById("front").innerHTML=dir==="term"
+    ?'<div class="tag">Medical word element</div><div class="term">'+esc(c.term)+'</div><div class="hint">Tap to reveal meaning</div>'
+    :'<div class="tag">Meaning</div><div class="meaning">'+esc(c.meaning)+'</div><div class="hint">Tap to reveal element</div>';
+  document.getElementById("back").innerHTML=dir==="term"
+    ?'<div class="tag">Meaning</div><div class="meaning">'+esc(c.meaning)+'</div><div class="hint">'+esc(c.term)+'</div>'
+    :'<div class="tag">Medical word element</div><div class="term">'+esc(c.term)+'</div>';
+  el.classList.toggle("flipped",flipped);
+  document.getElementById("count").textContent="Card "+(pos+1)+" of "+deck.length;
+  document.getElementById("pct").textContent=Math.round((pos+1)/deck.length*100)+"%";
+  document.getElementById("progress").style.width=((pos+1)/deck.length*100)+"%";
+  document.getElementById("known").textContent=known.size;
+  document.getElementById("review").textContent=review.size;
+  document.getElementById("misses").textContent=missCounts[c.term]||0;
+  document.getElementById("selectedSummary").textContent=selected.join(" + ")+" · "+deck.length+" cards shown";
+}
+function flip(){flipped=!flipped;render()}
+function next(){pos++;flipped=false;render()}
+function prev(){pos--;flipped=false;render()}
+function shuffleDeck(){
+ for(let i=deck.length-1;i>0;i--){
+   const j=Math.floor(Math.random()*(i+1));
+   [deck[i],deck[j]]=[deck[j],deck[i]];
+ }
+ pos=0;flipped=false;render();
+}
+function mark(ok){
+  if(!deck.length)return;
+  const t=CARDS[deck[pos]].term;
+
+  if(ok){
+    known.add(t);
+    review.delete(t);
+  }else{
+    review.add(t);
+    known.delete(t);
+    missCounts[t]=(missCounts[t]||0)+1;
+  }
+
+  save();
+
+  const status=document.getElementById("statusFilter")?.value||"all";
+  if(status==="all") next();
+  else refresh();
+}
+
+function openGroups(){renderGroups();const m=document.getElementById("modal");m.style.display="flex";m.classList.remove("hidden")}
+function closeGroups(){const m=document.getElementById("modal");m.classList.add("hidden");m.style.display="none";refresh()}
+
+function groupMastery(ids){
+ if(!ids.length)return 0;
+ let mastered=ids.filter(i=>known.has(CARDS[i].term)).length;
+ return Math.round(mastered/ids.length*100);
+}
+function renderGroups(){
+  const root=document.getElementById("groups");root.innerHTML="";
+  Object.entries(allGroups()).forEach(([g,ids])=>{
+    const row=document.createElement("div");row.className="check";
+    row.innerHTML='<input type="checkbox" '+(selected.includes(g)?"checked":"")+'><span style="flex:1">'+esc(g)+' <small>('+ids.length+' cards · '+groupMastery(ids)+'% mastery)</small></span>'+(custom[g]?'<button class="danger">Delete</button>':'');
+    row.querySelector("input").onchange=()=>toggleGroup(g);
+    const del=row.querySelector("button");
+    if(del)del.onclick=()=>{
+      delete custom[g];
+      selected=selected.filter(x=>x!==g);
+      if(!selected.length)selected=["All cards"];
+      if(editing===g){editing=null;document.getElementById("editor").innerHTML="";}
+      save();renderGroups();refresh();
+    };
+    row.querySelector("span").onclick=()=>{if(custom[g])renderEditor(g)};
+    root.appendChild(row);
+  });
+}
+
+function createGroup(){
+  const name=document.getElementById("newGroup").value.trim();
+  if(!name||allGroups()[name])return;
+  custom[name]=[];
+  selected=selected.filter(x=>x!=="All cards");
+  if(!selected.includes(name))selected.push(name);
+  document.getElementById("newGroup").value="";
+  save();renderGroups();renderEditor(name);refresh();
+}
+
+function renderEditor(name){
+  editing=name;
+  const root=document.getElementById("editor");
+  root.innerHTML='<h3>Edit “'+esc(name)+'”</h3><input id="groupSearch" placeholder="Search cards to add..." oninput="renderEditorCards()"><div class="checklist" id="editorCards" style="margin-top:8px"></div>';
+  renderEditorCards();
+}
+
+function renderEditorCards(){
+  if(!editing)return;
+  const q=document.getElementById("groupSearch").value.toLowerCase().trim();
+  const set=new Set(custom[editing]||[]);
+  const root=document.getElementById("editorCards");root.innerHTML="";
+  CARDS.forEach((c,i)=>{
+    if(q&&!((c.term+" "+c.meaning).toLowerCase().includes(q)))return;
+    const row=document.createElement("label");row.className="check";
+    row.innerHTML='<input type="checkbox" '+(set.has(i)?"checked":"")+'><span>'+esc(c.term)+' — '+esc(c.meaning)+'</span>';
+    row.querySelector("input").onchange=e=>{
+      if(e.target.checked)set.add(i);else set.delete(i);
+      custom[editing]=[...set];
+      save();renderGroups();refresh();
+    };
+    root.appendChild(row);
+  });
+}
+
+document.addEventListener("keydown",e=>{
+  if(e.target.matches("input,select"))return;
+  if(e.key===" "){e.preventDefault();flip()}
+  else if(e.key==="ArrowRight")next();
+  else if(e.key==="ArrowLeft")prev();
+  else if(e.key.toLowerCase()==="k")mark(true);
+  else if(e.key.toLowerCase()==="r")mark(false);
+});
+refresh();
+</script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(console.error);
+  });
+}
+</script>
+
+</body>
+</html>
