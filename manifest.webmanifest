@@ -1,9 +1,9 @@
 {
-  "id": "./?app=med-term-v5",
-  "name": "Medical Terminology Flashcards",
-  "short_name": "Med Term Cards",
+  "id": "./v4.html",
+  "name": "Medical Terminology Flashcards V4",
+  "short_name": "Med Term V4",
   "description": "Offline medical terminology flashcards with custom groups, mastery tracking, review filters, automatic shuffle, and progress backup.",
-  "start_url": "./?app=med-term-v5",
+  "start_url": "./v4.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#f4f7fb",
