@@ -1,13 +1,13 @@
 {
   "id": "./v4.html",
-  "name": "Medical Terminology Flashcards V4",
-  "short_name": "Med Term V4",
-  "description": "Offline medical terminology flashcards with custom groups, mastery tracking, review filters, automatic shuffle, and progress backup.",
+  "name": "Flash Cards",
+  "short_name": "Flash Cards",
+  "description": "Offline flashcards with custom groups, mastery tracking, review filters, automatic shuffle, dark mode, and progress backup.",
   "start_url": "./v4.html",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f4f7fb",
-  "theme_color": "#2563eb",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
   "icons": [
     {"src":"./icon-192.png","sizes":"192x192","type":"image/png"},
     {"src":"./icon-512.png","sizes":"512x512","type":"image/png"}
