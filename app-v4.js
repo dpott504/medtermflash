@@ -3,7 +3,19 @@ const K={custom:'medCustomGroups',selected:'medSelectedGroups',known:'medKnown',
 function esc(s){return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')}
 function loadState(){custom=JSON.parse(localStorage.getItem(K.custom)||'{}');selected=JSON.parse(localStorage.getItem(K.selected)||'["All cards"]');known=new Set(JSON.parse(localStorage.getItem(K.known)||'[]'));review=new Set(JSON.parse(localStorage.getItem(K.review)||'[]'));missCounts=JSON.parse(localStorage.getItem(K.miss)||'{}')}
 function saveState(){localStorage.setItem(K.custom,JSON.stringify(custom));localStorage.setItem(K.selected,JSON.stringify(selected));localStorage.setItem(K.known,JSON.stringify([...known]));localStorage.setItem(K.review,JSON.stringify([...review]));localStorage.setItem(K.miss,JSON.stringify(missCounts))}
-async function loadCards(){const text=await fetch('./cards.txt?v=4',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('cards');return r.text()});const seen=new Set();CARDS=text.split(/\r?\n/).map(line=>line.split('\t')).filter(p=>p.length>=2&&p[0].trim()&&p[1].trim()&&p[0].trim()!=='Medical Word Element').map(p=>({term:p[0].trim(),meaning:p.slice(1).join('\t').trim()})).filter(c=>{const k=c.term+'\0'+c.meaning;if(seen.has(k))return false;seen.add(k);return true})}
+async function loadCards(){
+  const html=await fetch('./index.html?db=v4',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('database');return r.text()});
+  const marker='const CARDS=';
+  const start=html.indexOf(marker);
+  if(start<0)throw new Error('database marker missing');
+  const arrayStart=start+marker.length;
+  const end=html.indexOf(';',arrayStart);
+  if(end<0)throw new Error('database end missing');
+  const raw=html.slice(arrayStart,end).trim();
+  const parsed=JSON.parse(raw);
+  if(!Array.isArray(parsed)||!parsed.length)throw new Error('database empty');
+  CARDS=parsed.filter(c=>c&&c.term&&c.meaning);
+}
 function defaultGroups(){return {'All cards':CARDS.map((_,i)=>i),'Likely prefixes':CARDS.map((c,i)=>c.term.endsWith('-')?i:-1).filter(i=>i>=0),'Likely suffixes':CARDS.map((c,i)=>c.term.startsWith('-')?i:-1).filter(i=>i>=0),'Roots / combining forms':CARDS.map((c,i)=>(!c.term.startsWith('-')&&!c.term.endsWith('-'))?i:-1).filter(i=>i>=0)}}
 function allGroups(){return {...defaultGroups(),...custom}}
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
