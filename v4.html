@@ -6,17 +6,17 @@
 <meta name="theme-color" content="#2563eb">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Med Term Cards V4">
-<title>Med Term Cards V4</title>
-<link rel="manifest" href="./manifest.webmanifest?v=4">
+<meta name="apple-mobile-web-app-title" content="Med Term Cards V4.1">
+<title>Med Term Cards V4.1</title>
+<link rel="manifest" href="./manifest.webmanifest?v=4.1">
 <link rel="apple-touch-icon" href="./icon-192.png">
-<link rel="stylesheet" href="./styles.css?v=4">
+<link rel="stylesheet" href="./styles.css?v=4.1">
 </head>
 <body>
 <div id="studyView">
   <div class="app">
     <header class="header">
-      <div><h1>Med Term Cards</h1><div class="sub">Medical terminology flashcards · V4</div></div>
+      <div><h1>Med Term Cards</h1><div class="sub">Medical terminology flashcards · V4.1</div></div>
       <button onclick="showGroups()">Groups</button>
     </header>
     <section class="panel"><div class="tabs" id="quickGroups"></div></section>
@@ -40,13 +40,39 @@
 </div>
 <div id="groupsView" class="hidden">
   <div class="app">
-    <header class="header"><div><div class="sub">Study setup · V4</div><h1>Groups</h1></div><button onclick="showStudy()">← Back</button></header>
+    <header class="header"><div><div class="sub">Study setup · V4.1</div><h1>Groups</h1></div><button onclick="showStudy()">← Back</button></header>
     <section class="panel"><p class="sub intro">Select any combination of groups. A card in multiple selected groups appears only once.</p><div id="groupsList"></div></section>
     <section class="panel"><h2>Create custom group</h2><div class="row"><input id="newGroup" placeholder="e.g. Cardiovascular"><button class="primary" onclick="createGroup()">Create</button></div><div id="groupEditor"></div></section>
     <section class="panel"><h2>Progress Backup</h2><p class="sub intro">Save this before clearing Safari website data or reinstalling the Home Screen app.</p><div class="backup-actions"><button class="primary" onclick="exportProgress()">Save Backup</button><button onclick="document.getElementById('progressImport').click()">Restore Backup</button></div><input id="progressImport" type="file" accept="application/json,.json" hidden onchange="importProgress(event)"><div class="small">Includes custom groups, selected groups, Known/Review status, and miss counts.</div></section>
   </div>
 </div>
-<script src="./app-v4.js?v=4"></script>
+<script>
+// Compatibility shim for the legacy embedded database. The V4 loader expects
+// the first semicolon after "const CARDS=" to be the end of the array, but many
+// card meanings legitimately contain semicolons. For the database request only,
+// normalize the legacy page to a minimal payload with the true array boundary.
+const medOriginalFetch = window.fetch.bind(window);
+window.fetch = async function(input, init) {
+  const url = typeof input === 'string' ? input : (input && input.url) || '';
+  if (url.includes('index.html?db=v4')) {
+    const response = await medOriginalFetch(input, init);
+    const text = await response.text();
+    const startMarker = 'const CARDS=';
+    const endMarker = 'const DEFAULT_GROUPS';
+    const start = text.indexOf(startMarker);
+    const end = text.indexOf(endMarker, start + startMarker.length);
+    if (start < 0 || end < 0) return new Response('', {status:500});
+    let cardsSource = text.slice(start + startMarker.length, end).trim();
+    if (cardsSource.endsWith(';')) cardsSource = cardsSource.slice(0, -1).trim();
+    return new Response('const CARDS=' + cardsSource + ';', {
+      status: 200,
+      headers: {'content-type':'text/html; charset=utf-8'}
+    });
+  }
+  return medOriginalFetch(input, init);
+};
+</script>
+<script src="./app-v4.js?v=4.1"></script>
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(r=>r.update()).catch(console.error)}</script>
 </body>
 </html>
