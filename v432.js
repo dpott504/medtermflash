@@ -35,6 +35,8 @@ function statusLabel(){
 }
 
 // Replace deck generation with OR-combined status filtering.
+// Filters define which cards enter a session; once built, that deck stays stable until
+// the user changes groups/statuses, returns from Settings, or otherwise rebuilds it.
 buildDeck=function(){
   const groups=allGroups();const ids=new Set();
   selected.forEach(g=>(groups[g]||[]).forEach(i=>ids.add(i)));
@@ -43,13 +45,14 @@ buildDeck=function(){
   pos=0;flipped=false;renderToolbarGroups();renderStatusChecks();renderCard();
 };
 
-// Marking should rebuild whenever active status filters may change membership.
+// Rating a card updates its permanent status but does not rebuild the active session.
+// This keeps Card X of Y, percentage, order, Next, and Previous stable for every filter.
 markCard=function(ok){
   if(!deck.length)return;
   const t=CARDS[deck[pos]].term;
   if(ok){known.add(t);review.delete(t)}else{review.add(t);known.delete(t);missCounts[t]=(missCounts[t]||0)+1}
   saveState();
-  if(selectedStatuses.size===0)nextCard();else buildDeck();
+  nextCard();
 };
 
 // Ensure initial UI reflects saved multi-status selections after base initialization.
