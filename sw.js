@@ -1,11 +1,11 @@
-const CACHE = "med-term-cards-v4.3.3";
+const CACHE = "med-term-cards-v4.3.4";
 const ASSETS = [
   "./v4.html",
-  "./app-v4.js?v=4.3.3",
-  "./v43.js?v=4.3.3",
-  "./v432.js?v=4.3.3",
-  "./styles.css?v=4.3.3",
-  "./manifest.webmanifest?v=4.3.3",
+  "./app-v4.js?v=4.3.4",
+  "./v43.js?v=4.3.4",
+  "./v432.js?v=4.3.4",
+  "./styles.css?v=4.3.4",
+  "./manifest.webmanifest?v=4.3.4",
   "./icon-192.png",
   "./icon-512.png"
 ];
