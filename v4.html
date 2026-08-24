@@ -7,23 +7,29 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Flash Cards">
-<title>Flashcards V4.3.3</title>
-<link rel="manifest" href="./manifest.webmanifest?v=4.3.3">
+<title>Flashcards V4.3.4</title>
+<link rel="manifest" href="./manifest.webmanifest?v=4.3.4">
 <link rel="apple-touch-icon" href="./icon-192.png">
-<link rel="stylesheet" href="./styles.css?v=4.3.3">
+<link rel="stylesheet" href="./styles.css?v=4.3.4">
 <style>
 .primary-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}
 .primary-actions button{min-height:76px;font-size:17px;font-weight:800;border-radius:16px}
 .secondary-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}
 .secondary-actions button{min-height:42px;font-size:14px}
+.card-group-action{margin-top:8px;width:100%;min-height:42px;font-size:14px}
 .status-check{display:flex!important;align-items:center;gap:10px;padding:11px 8px!important;margin:0!important;border-bottom:1px solid var(--line);color:var(--ink)!important;font-size:14px!important}
 .status-check:last-child{border-bottom:0}.status-check input{width:19px;height:19px;flex:0 0 auto}.status-check span{font-weight:700}
+.card-groups-modal{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.52);display:flex;align-items:flex-end;justify-content:center;padding:16px}
+.card-groups-modal.hidden{display:none}
+.card-groups-sheet{width:min(100%,560px);max-height:78vh;overflow:auto;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 18px 50px rgba(0,0,0,.28)}
+.card-groups-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}.card-groups-head h2{margin:0}.card-groups-head button{min-height:38px}
+.card-groups-create{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:14px}.card-groups-create input{min-width:0}
 </style>
 </head>
 <body>
 <div id="studyView">
   <div class="app">
-    <header class="header"><div><h1>Flashcards V4.3.3</h1><div class="sub">medical terms</div></div></header>
+    <header class="header"><div><h1>Flashcards V4.3.4</h1><div class="sub">medical terms</div></div></header>
     <section class="toolbar-panel">
       <div class="toolbar">
         <div class="tool"><button onclick="showGroups()">Settings</button></div>
@@ -41,21 +47,30 @@
       <div class="stats"><span>Known <b id="known">0</b></span><span>Review <b id="review">0</b></span></div>
       <div class="primary-actions"><button onclick="markCard(true)">✓ Knew it</button><button onclick="markCard(false)">↻ Review</button></div>
       <div class="secondary-actions"><button onclick="prevCard()">← Previous</button><button onclick="nextCard()">Next →</button></div>
+      <button class="card-group-action" onclick="openCardGroups()">＋ Groups</button>
     </section>
   </div>
 </div>
 <div id="groupsView" class="hidden">
   <div class="app">
-    <header class="header"><div><div class="sub">medical terms · V4.3.3</div><h1>Settings</h1></div><button onclick="showStudy()">← Back</button></header>
+    <header class="header"><div><div class="sub">medical terms · V4.3.4</div><h1>Settings</h1></div><button onclick="showStudy()">← Back</button></header>
     <section class="panel"><h2>Appearance</h2><div class="setting-row"><div><div class="setting-title">Dark mode</div><div class="sub">Use a darker color scheme throughout the app.</div></div><label class="switch"><input id="darkModeToggle" type="checkbox" onchange="setDarkMode(this.checked)"><span class="slider"></span></label></div></section>
     <section class="panel"><h2>Manage groups</h2><p class="sub intro">Rename groups, change which terms belong to them, or delete them. All is the only fixed group.</p><div id="groupsList"></div></section>
     <section class="panel"><h2>Create group</h2><div class="row"><input id="newGroup" placeholder="e.g. Cardiovascular"><button class="primary" onclick="createGroup()">Create</button></div><div id="groupEditor"></div></section>
     <section class="panel"><h2>Progress Backup</h2><p class="sub intro">Save this before clearing Safari website data or reinstalling the Home Screen app.</p><div class="backup-actions"><button class="primary" onclick="exportProgress()">Save Backup</button><button onclick="document.getElementById('progressImport').click()">Restore Backup</button></div><input id="progressImport" type="file" accept="application/json,.json" hidden onchange="importProgress(event)"></section>
   </div>
 </div>
-<script src="./app-v4.js?v=4.3.3"></script>
-<script src="./v43.js?v=4.3.3"></script>
-<script src="./v432.js?v=4.3.3"></script>
+<div id="cardGroupsModal" class="card-groups-modal hidden" onclick="if(event.target===this)closeCardGroups()">
+  <div class="card-groups-sheet">
+    <div class="card-groups-head"><h2>Card groups</h2><button onclick="closeCardGroups()">Done</button></div>
+    <div class="sub">Add or remove this card without changing the current study session.</div>
+    <div id="cardGroupsList" style="margin-top:10px"></div>
+    <div class="card-groups-create"><input id="cardGroupNewName" placeholder="New group name" onkeydown="if(event.key==='Enter')createGroupForCurrentCard()"><button class="primary" onclick="createGroupForCurrentCard()">＋ Create</button></div>
+  </div>
+</div>
+<script src="./app-v4.js?v=4.3.4"></script>
+<script src="./v43.js?v=4.3.4"></script>
+<script src="./v432.js?v=4.3.4"></script>
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'}).then(r=>r.update()).catch(console.error)}</script>
 </body>
 </html>
