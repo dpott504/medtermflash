@@ -1,4 +1,4 @@
-// V4.3.2: multi-select status filtering.
+// V4.3.4: multi-select status filtering, stable sessions, and on-the-fly group membership.
 const STATUS_KEY='flashcardsSelectedStatuses';
 let selectedStatuses=new Set(JSON.parse(localStorage.getItem(STATUS_KEY)||'[]'));
 const STATUS_OPTIONS=[
@@ -34,7 +34,6 @@ function statusLabel(){
   return STATUS_OPTIONS.filter(([k])=>selectedStatuses.has(k)).map(([,l])=>l).join(', ');
 }
 
-// Replace deck generation with OR-combined status filtering.
 // Filters define which cards enter a session; once built, that deck stays stable until
 // the user changes groups/statuses, returns from Settings, or otherwise rebuilds it.
 buildDeck=function(){
@@ -45,8 +44,7 @@ buildDeck=function(){
   pos=0;flipped=false;renderToolbarGroups();renderStatusChecks();renderCard();
 };
 
-// Rating a card updates its permanent status but does not rebuild the active session.
-// This keeps Card X of Y, percentage, order, Next, and Previous stable for every filter.
+// Rating updates permanent status without rebuilding the active session.
 markCard=function(ok){
   if(!deck.length)return;
   const t=CARDS[deck[pos]].term;
@@ -54,6 +52,35 @@ markCard=function(ok){
   saveState();
   nextCard();
 };
+
+function openCardGroups(){
+  if(!deck.length)return;
+  renderCardGroups();
+  document.getElementById('cardGroupsModal').classList.remove('hidden');
+}
+function closeCardGroups(){document.getElementById('cardGroupsModal').classList.add('hidden')}
+function renderCardGroups(){
+  const root=document.getElementById('cardGroupsList');if(!root||!deck.length)return;
+  const cardId=deck[pos];root.innerHTML='';
+  const entries=Object.entries(custom);
+  if(!entries.length){root.innerHTML='<div class="sub" style="padding:10px 2px">No custom groups yet. Create one below.</div>';return}
+  entries.forEach(([g,ids])=>{
+    const row=document.createElement('label');row.className='status-check';
+    row.innerHTML='<input type="checkbox" '+(ids.includes(cardId)?'checked':'')+'><span>'+esc(g)+'</span>';
+    row.querySelector('input').onchange=e=>{
+      const set=new Set(custom[g]||[]);
+      e.target.checked?set.add(cardId):set.delete(cardId);
+      custom[g]=[...set];saveState();renderGroups();renderToolbarGroups();
+    };
+    root.appendChild(row);
+  });
+}
+function createGroupForCurrentCard(){
+  if(!deck.length)return;
+  const input=document.getElementById('cardGroupNewName');const name=input.value.trim();
+  if(!name||name==='All'||allGroups()[name]){alert('Choose a unique group name other than All.');return}
+  custom[name]=[deck[pos]];input.value='';saveState();renderGroups();renderToolbarGroups();renderCardGroups();
+}
 
 // Ensure initial UI reflects saved multi-status selections after base initialization.
 setTimeout(()=>{renderStatusChecks();renderSummary();},0);
